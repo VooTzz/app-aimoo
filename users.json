@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "email": "user@example.com",
+    "plan": "free",
+    "usage": {
+      "date": "2025-08-06",
+      "count": 0
+    }
+  }
+]
