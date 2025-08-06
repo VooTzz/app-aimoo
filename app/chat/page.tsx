@@ -1,79 +1,79 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
+import { useState } from 'react'
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [messages, setMessages] = useState([{ role: 'system', content: 'Halo! Ada yang bisa saya bantu?' }])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
+  const handleSend = async () => {
+    if (!input.trim()) return
 
-    const userMessage = { role: 'user', content: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setLoading(true);
+    const newMessages = [...messages, { role: 'user', content: input }]
+    setMessages(newMessages)
+    setInput('')
+    setLoading(true)
+    setError('')
 
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [...messages, userMessage],
-        }),
-      });
+        body: JSON.stringify({ messages: newMessages }),
+      })
 
-      const data = await res.json();
-      const botMessage = {
-        role: 'assistant',
-        content: data.reply,
-      };
+      const data = await res.json()
 
-      setMessages((prev) => [...prev, botMessage]);
+      if (!res.ok) {
+        setError(data.error || 'Terjadi kesalahan.')
+      } else {
+        setMessages([...newMessages, { role: 'assistant', content: data.message }])
+      }
     } catch (err) {
-      console.error('Error:', err);
+      setError('Gagal menghubungi server.')
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
+  }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">🧠 AimooGPT Chat</h1>
+    <div className="max-w-2xl mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">AimooGpt</h1>
 
-      <div className="space-y-4 mb-4 max-h-[60vh] overflow-y-auto">
-        {messages.map((msg, i) => (
-          <div key={i} className={`p-3 rounded ${msg.role === 'user' ? 'bg-blue-100 text-right' : 'bg-gray-100'}`}>
-            <p><strong>{msg.role === 'user' ? 'Kamu' : 'AimooGPT'}:</strong> {msg.content}</p>
+      <div className="space-y-2 mb-4">
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`p-2 rounded ${
+              msg.role === 'user' ? 'bg-blue-100 text-right' : msg.role === 'assistant' ? 'bg-green-100' : 'text-gray-500 italic'
+            }`}
+          >
+            <span>{msg.content}</span>
           </div>
         ))}
       </div>
 
-      <textarea
-        className="w-full p-3 border rounded"
-        rows={3}
-        placeholder="Ketik pertanyaanmu di sini..."
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        disabled={loading}
-      />
+      {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
 
-      <button
-        className="mt-2 px-4 py-2 bg-black text-white rounded"
-        onClick={sendMessage}
-        disabled={loading}
-      >
-        {loading ? 'Mengirim...' : 'Kirim'}
-      </button>
+      <div className="flex gap-2">
+        <input
+          className="flex-1 border rounded px-2 py-1"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+          placeholder="Ketik pesan..."
+          disabled={loading}
+        />
+        <button
+          className="bg-blue-500 text-white px-4 py-1 rounded"
+          onClick={handleSend}
+          disabled={loading}
+        >
+          Kirim
+        </button>
+      </div>
     </div>
-  );
+  )
 }
